@@ -1,0 +1,331 @@
+<html>
+<head>
+
+  <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.2.1.min.js"></script>
+   <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <title>Steven's Home Automation Hub</title>
+</head>
+<a href="#" id="LoginWithAmazon">
+  <img border="0" alt="Login with Amazon"
+    src="https://images-na.ssl-images-amazon.com/images/G/01/lwa/btnLWA_gold_156x32.png"
+    width="156" height="32" />
+</a>
+<a href='#' id="Logout">Logout</a>
+
+<div style="width: 100%;">
+	<input id='thing_entry' style="width: 91%; text-align: center;" value=""/>
+</div>
+<div id='thingOptions'></div>
+<div style="width: 91%; text-align: center;">Frames</div> <div style="width: 92%; margin-top: 5px;" id="frames_slider"></div>
+<div style="width: 91%; text-align: center;">Brightness</div> <div style="width: 92%; margin-top: 5px;" id="brightness_slider"></div>
+<div style="width: 91%; text-align: center;">Grouping</div> <div style="width: 92%; margin-top: 5px;" id="grouping_slider"></div>
+<input type="color" class="color_picker" id="ssColor" style="width: 46%; margin-top: 5px; float: left;">
+<input type="color" class="color_picker" id="ssColor2" style="width: 46%; margin-top: 5px; float: left;">
+
+<table>
+   <div id="1" class="scene_selection" style="cursor: pointer;">Confetti
+   		<span id="1_json" style='display: none;'>confetti</span>
+   </div>
+   <div id="2" class="scene_selection" style="cursor: pointer;">Twinkle
+   		<span id="2_json" style='display: none;'>twinkle</span>
+   </div>
+   <div id="3" class="scene_selection" style="cursor: pointer;">Rainbow
+   		<span id="3_json" style='display: none;'>rainbow</span>
+   </div>
+   <div id="4" class="scene_selection" style="cursor: pointer;">Rainbow Beat
+   		<span id="4_json" style='display: none;'>rainbow_beat</span>
+   </div>
+   <div id="5" class="scene_selection" style="cursor: pointer;">Rainbow With Glitter
+   		<span id="5_json" style='display: none;'>glitter</span>
+   </div>
+   <div id="6" class="scene_selection" style="cursor: pointer;">Beat Wave
+   		<span id="6_json" style='display: none;'>beat_wave</span>
+   </div>
+   <div id="7" class="scene_selection" style="cursor: pointer;">Sinelon
+   		<span id="7_json" style='display: none;'>sign</span>
+   </div>
+   <div id="8" class="scene_selection" style="cursor: pointer;">Chaser
+   		<span id="8_json" style='display: none;'>friends</span>
+   </div>
+   <div id="9" class="scene_selection" style="cursor: pointer;">Beats
+   		<span id="9_json" style='display: none;'>music</span>
+   </div>
+   <div id="10" class="scene_selection" style="cursor: pointer;">Juggle
+   		<span id="10_json" style='display: none;'>juggle</span>
+   </div>
+   <div id="11" class="scene_selection" style="cursor: pointer;">Fade
+   		<span id="11_json" style='display: none;'>fade</span>
+   </div>
+   <div id="12" class="scene_selection" style="cursor: pointer;">Blend
+   		<span id="12_json" style='display: none;'>blend</span>
+   </div>
+  <div class="solid_selection" style="cursor: pointer;">Solid</div>
+</table>
+<br>
+<br>
+<div id="fb-root"></div>
+
+
+
+<div id="amazon-root"></div>
+ <script type="text/javascript">
+
+    window.onAmazonLoginReady = function() {
+      amazon.Login.setClientId('amzn1.application-oa2-client.90a7f4dcf25f4ddca811aa64eb05e651');
+    };
+    (function(d) {
+      var a = d.createElement('script'); a.type = 'text/javascript';
+      a.async = true; a.id = 'amazon-login-sdk';
+      a.src = 'https://api-cdn.amazon.com/sdk/login1.js';
+      d.getElementById('amazon-root').appendChild(a);
+    })(document);
+
+</script>
+
+<script type="text/javascript">
+
+document.getElementById('LoginWithAmazon').onclick = function() {
+	var thing_string = localStorage['thing_string'];
+	if (!thing_string) {
+		options = { scope : 'profile' };
+		amazon.Login.authorize(options, function(response) {
+			if ( response.error ) {
+				console.log('oauth error ' + response.error); return;
+			}
+			console.log('success: ' + response.access_token);
+			console.log('other stuff: ' + JSON.stringify(response));
+			amazon.Login.retrieveProfile(response.access_token, function(response) {
+			    console.log('Your e-mail address is ' + response.profile.PrimaryEmail);
+			    var user_email = response.profile.PrimaryEmail;
+			   $('#face_log').val(user_email);
+			   $.post({
+			     type: "POST",
+			     url: 'LAMBDA ARN/prod/subscribe',
+			     data: JSON.stringify({email: user_email, method: 'getThing'}),
+			         crossDomain: true,
+			         contentType: 'application/json',
+			     success: function(data) {
+			     	console.log(data);
+			     	$.each(data.thing_string, function( index, value ) {
+			     	  console.log( value );
+			     	  var radioBtn = $("<label>"+ value +"</label><input type='radio' name='rdbSetThing' value='"+ value +"' />");
+			     	  radioBtn.appendTo('#thingOptions');
+			     	});
+			   	 	localStorage['thing_string'] = data.thing_string[2];
+			   	 	localStorage['thing_full'] = JSON.stringify(data.thing_string);
+			      	 $('#thing_entry').val(data.thing_string[2]);
+			     },
+			     dataType: "json"
+			   });
+			});
+		});
+		return false;
+	}else{
+		$('#thing_entry').val(thing_string);
+		$.each(JSON.parse(localStorage['thing_full']), function( index, value ) {
+		  console.log( value );
+		  var radioBtn = $("<label>"+ value +"</label><input type='radio' name='rdbSetThing' value='"+ value +"' />");
+		  radioBtn.appendTo('#thingOptions');
+		});
+	}
+};
+</script>
+
+<script type="text/javascript">
+  document.getElementById('Logout').onclick = function() {
+    amazon.Login.logout();
+    localStorage.clear();
+};
+</script>
+
+
+
+
+<script>
+$(document).on('click', 'input[type=radio][name=rdbSetThing]', function(e) {
+     $('#thing_entry').val($(this).val());
+});
+</script>
+<script type="text/javascript">
+	$("#frames_slider").slider({
+	    value: 106,
+	    min: 1,
+	    max: 212,
+	    step: 1,
+	    change: function (event, res) {
+	        data = {};
+	        data['sendValueString'] = "frames=" + res.value
+	        data['method'] = "setSliderValues"
+	        data['thing'] = $('#thing_entry').val()
+	        $.ajax({
+	            url: 'LAMBDA ARN/prod/subscribe',
+	            type: 'POST',
+	            crossDomain: true,
+	            contentType: 'application/json',
+	            data: JSON.stringify(data),
+	            dataType: 'json',
+	            success: function(data) {
+	                console.log(data);
+	            },
+	            error: function(xhr, ajaxOptions, thrownError) {
+	                //error handling stuff
+	            }
+	        });
+	    }
+	});
+	$("#brightness_slider").slider({
+	    value: 255,
+	    min: 0,
+	    max: 255,
+	    step: 1,
+	    change: function (event, res) {
+	        data = {};
+	        data['sendValueString'] = "brightness=" + res.value
+	        data['method'] = "setSliderValues"
+	        data['thing'] = $('#thing_entry').val()
+	        $.ajax({
+	            url: 'LAMBDA ARN/prod/subscribe',
+	            type: 'POST',
+	            crossDomain: true,
+	            contentType: 'application/json',
+	            data: JSON.stringify(data),
+	            dataType: 'json',
+	            success: function(data) {
+	                console.log(data);
+	            },
+	            error: function(xhr, ajaxOptions, thrownError) {
+	                //error handling stuff
+	            }
+	        });
+	    }
+	});
+	$("#grouping_slider").slider({
+	    value: 100,
+	    min: 2,
+	    max: 900,
+	    step: 1,
+	    change: function (event, res) {
+	        data = {};
+	        data['sendValueString'] = "grouping=" + res.value
+	        data['method'] = "setSliderValues"
+	        data['thing'] = $('#thing_entry').val()
+	        $.ajax({
+	            url: 'LAMBDA ARN/prod/subscribe',
+	            type: 'POST',
+	            crossDomain: true,
+	            contentType: 'application/json',
+	            data: JSON.stringify(data),
+	            dataType: 'json',
+	            success: function(data) {
+	                console.log(data);
+	            },
+	            error: function(xhr, ajaxOptions, thrownError) {
+	                //error handling stuff
+	            }
+	        });
+	    }
+	});
+
+	$('.color_picker').on('input', function(){
+		data = {};
+		if($(this).attr('id') == 'ssColor'){
+			data['sendValueString'] = "color1=" + $(this).val();
+		}else{
+			data['sendValueString'] = "color2=" + $(this).val();
+		}
+		data['method'] = "setSliderValues"
+		data['thing'] = $('#thing_entry').val()
+		$.ajax({
+		    url: 'LAMBDA ARN/prod/subscribe',
+		    type: 'POST',
+		    crossDomain: true,
+		    contentType: 'application/json',
+		    data: JSON.stringify(data),
+		    dataType: 'json',
+		    success: function(data) {
+		        console.log(data);
+		    },
+		    error: function(xhr, ajaxOptions, thrownError) {
+		        //error handling stuff
+		    }
+		});
+	});
+</script>
+
+<script>
+	$('.solid_selection').on('click', function(){
+		var color = $('#ssColor').val();
+		var thing_entry = $('#thing_entry').val();
+		data = {};
+		data['color'] = color
+		data['method'] = "solidColor"
+		data['thing'] = thing_entry
+		$.ajax({
+		    url: 'LAMBDA ARN/prod/subscribe',
+		    type: 'POST',
+		    crossDomain: true,
+		    contentType: 'application/json',
+		    data: JSON.stringify(data),
+		    dataType: 'json',
+		    success: function(data) {
+		        console.log(data);
+		    },
+		    error: function(xhr, ajaxOptions, thrownError) {
+		        //error handling stuff
+		    }
+		});
+	});
+
+	$('.scene_selection').on('click', function(){
+		var clicked = $(this).attr('id');
+		var json_id = '#'+clicked + '_json';
+		var scene = $(json_id).html();
+		var thing_entry = $('#thing_entry').val();
+		data = {};
+		data['scene'] = scene
+		data['method'] = "sceneSelect"
+		data['thing'] = thing_entry
+		$.ajax({
+		    url: 'LAMBDA ARN/prod/subscribe',
+		    type: 'POST',
+		    crossDomain: true,
+		    contentType: 'application/json',
+		    data: JSON.stringify(data),
+		    dataType: 'json',
+		    success: function(data) {
+		        console.log(data);
+		    },
+		    error: function(xhr, ajaxOptions, thrownError) {
+		        //error handling stuff
+		    }
+		});
+	});
+</script>
+
+<style>
+.scene_selection {
+    text-align: center;
+	text-decoration: none;
+	color: #6669FF;
+	border: 1px solid #36FFAA;
+	font-size: 24px;
+	padding: 10px;
+      width: 42%;
+      height: 100px;
+      float: left;
+      margin: 1%;
+}
+.solid_selection {
+      text-align: center;
+	text-decoration: none;
+	color: #6669FF;
+	border: 1px solid #36FFAA;
+	font-size: 24px;
+	padding: 10px;
+      width: 42%;
+      height: 100px;
+      float: left;
+      margin: 1%;
+}
+</style>
